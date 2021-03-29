@@ -1,0 +1,6 @@
+*.txt
+*.tsv
+*.o
+bin/*
+!example/spec1.tsv
+!example/spec2.tsv

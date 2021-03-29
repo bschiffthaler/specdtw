@@ -1,5 +1,7 @@
 # Spec-DTW - Efficient dynamic time warping of spectra
 
+![spectrum](https://raw.githubusercontent.com/bschiffthaler/specdtw/main/doc/img/align.png)
+
 This is an implementation of a single subset Toni Giorgino's `dtw` algorithm to 
 push throughput a bit higher and to not have R as a dependency.
 

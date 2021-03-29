@@ -40,3 +40,10 @@ You can try by runing the example:
 ```bash
 ./bin/specdtw example/spec1.tsv example/spec2.tsv
 ```
+
+## Output
+
+Currently hardcoded in `$PWD`:
+
+* `index1_2.txt` - A 2-column matrix with the **0-based** indices analogous to R's `dtw$index1` and `dtw$index2`
+* `index1_2s.txt` - A 2-column matrix with the **0-based** indices analogous to R's `dtw$index1s` and `dtw$index2s`

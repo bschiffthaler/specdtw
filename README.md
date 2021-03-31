@@ -32,13 +32,18 @@ make release
 ## Usage
 
 ```bash
-specdtw <query> <reference>
+specdtw <query> <reference> <index_out> <indexs_out> <dist_out>
 ```
 
 You can try by runing the example:
 
 ```bash
-./bin/specdtw example/spec1.tsv example/spec2.tsv
+./bin/specdtw \
+  example/spec1.tsv \
+  example/spec2.tsv \
+  example/index1_2.txt \
+  example/index1_2s.txt \
+  example/dist.txt
 ```
 
 ## Output

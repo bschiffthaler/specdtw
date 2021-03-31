@@ -14,8 +14,41 @@
 int main(int argc, char const *argv[]) {
   clock_t program_start = clock();
 
+  if (argc != 6) {
+    fprintf(stderr,
+      "usage: %s <query> <reference> <index_out> <indexs_out> <dist_out>\n",
+     argv[0]);
+    return 1;
+  }
+
   FILE *spec_a_handle = fopen(argv[1], "r");
   FILE *spec_b_handle = fopen(argv[2], "r");
+
+  if (! spec_a_handle) {
+    fprintf(stderr, "Error opening input: %s\n", argv[1]);
+    return 1;
+  }
+  if (! spec_b_handle) {
+    fprintf(stderr, "Error opening input: %s\n", argv[2]);
+    return 1;
+  }
+
+  FILE *index_out = fopen(argv[3], "w");
+  FILE *indexs_out = fopen(argv[4], "w");
+  FILE *dist_out = fopen(argv[5], "w");
+
+  if (! index_out) {
+    fprintf(stderr, "Error opening output: %s\n", argv[3]);
+    return 1;
+  }
+  if (! indexs_out) {
+    fprintf(stderr, "Error opening output: %s\n", argv[4]);
+    return 1;
+  }
+  if (! dist_out) {
+    fprintf(stderr, "Error opening output: %s\n", argv[5]);
+    return 1;
+  }
 
   fprintf(stderr, "%s\n", "Reading input spectra...");
   clock_t begin_read = clock();
@@ -106,6 +139,9 @@ int main(int argc, char const *argv[]) {
   fprintf(stderr, "Distance:" num_fmt "\n", distance);
   fprintf(stderr, "Normalized distance:" num_fmt "\n", normalized_distance);
 
+  fprintf(dist_out, num_fmt " " num_fmt "\n", distance, normalized_distance);
+  fclose(dist_out);
+
   bt_index_t path;
   path.index1 = (int64_t *)malloc(sizeof(int64_t) * (n + m + 1));
   path.index1s = (int64_t *)malloc(sizeof(int64_t) * (n + m + 1));
@@ -122,16 +158,14 @@ int main(int argc, char const *argv[]) {
 
   fprintf(stderr, "%s\n", "Writing files...");
   clock_t begin_write = clock();
-  FILE *outf = fopen("index1_2.txt", "w");
   for (int64_t _i = (path.ii - 2); _i > -1; _i--) {
-    fprintf(outf, "%ld %ld\n", path.index1[_i] - 1, path.index2[_i]);
+    fprintf(index_out, "%ld %ld\n", path.index1[_i] - 1, path.index2[_i]);
   }
-  fclose(outf);
-  outf = fopen("index1_2s.txt", "w");
+  fclose(index_out);
   for (int64_t _i = (path.jj - 2); _i > -1; _i--) {
-    fprintf(outf, "%ld %ld\n", path.index1s[_i] - 1, path.index2s[_i]);
+    fprintf(indexs_out, "%ld %ld\n", path.index1s[_i] - 1, path.index2s[_i]);
   }
-  fclose(outf);
+  fclose(indexs_out);
   clock_t end_write = clock();
   fprintf(stderr, "Time to write: " num_fmt "\n",
           (num_t)(end_write - begin_write) / CLOCKS_PER_SEC);

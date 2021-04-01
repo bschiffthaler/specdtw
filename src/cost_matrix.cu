@@ -4,29 +4,6 @@
 #include "cost_matrix.cuh"
 #include "step_pattern.h"
 
-bool almost_equal(num_t A, num_t B) {
-  // Calculate the difference.
-  num_t diff = fabs(A - B);
-  A = fabs(A);
-  B = fabs(B);
-  // Find the largest
-  num_t largest = (B > A) ? B : A;
-
-  return (diff <= largest * SFLT_EPSILON);
-}
-
-int64_t argmin(num_t const *clist, int64_t len) {
-  int64_t ii = -1;
-  num_t vv = INFINITY;
-  for (int64_t i = 0; i < len; i++) {
-    if (clist[i] < vv) {
-      ii = i;
-      vv = clist[i];
-    }
-  }
-  return ii;
-}
-
 __global__ void cuda_kernel_cm(num_t const *lm, num_t *cm, int64_t *sm,
                                int64_t const n, int64_t const m,
                                int64_t const np, int64_t const *pattern,
@@ -39,7 +16,7 @@ __global__ void cuda_kernel_cm(num_t const *lm, num_t *cm, int64_t *sm,
   }
 }
 
-void cost_matrix(num_t const *lm, step_pattern *p, num_t *cm, int64_t *sm,
+void cost_matrix(num_t const *lm, step_pattern const *p, num_t *cm, int64_t *sm,
                  int64_t n, int64_t m) {
   int64_t npats = p->pattern[p->np - 1] + 1;
   int64_t nsteps = p->np;
@@ -64,7 +41,7 @@ void cost_matrix(num_t const *lm, step_pattern *p, num_t *cm, int64_t *sm,
         int64_t jj = j - p->dj[s];
         if (ii >= 0 && jj >= 0) { /* address ok? C convention */
           num_t cc = p->cost[s];
-          if (almost_equal(cc, -1.0)) {
+          if (near(cc, -1.0)) {
             clist[_p] = cm[IX(ii, jj)];
           } else { /* we rely on NAN to propagate */
             clist[_p] += cc * lm[IX(ii, jj)];

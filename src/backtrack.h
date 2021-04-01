@@ -14,6 +14,7 @@ typedef struct {
   int64_t ss;
 } bt_index_t;
 
-void backtrack(step_pattern const* p, num_t const* cm, int64_t const* sm,
-               int64_t const n, int64_t const m,  int64_t const jmin,
-               bt_index_t * path);
+void backtrack(step_pattern const* p, int64_t const* sm, int64_t const n,
+               int64_t const jmin, bt_index_t* path);
+
+void free_bt_index(bt_index_t * f);

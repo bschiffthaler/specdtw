@@ -1,15 +1,15 @@
+#include "backtrack.h"
+
 #include <limits.h>
-#include <stdlib.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 
-#include "backtrack.h"
 #include "common.h"
 #include "step_pattern.h"
 
-void backtrack(step_pattern const* p, num_t const* cm, int64_t const* sm,
-               int64_t const n, int64_t const m, int64_t const jmin, 
-               bt_index_t * path){
+void backtrack(step_pattern const* p, int64_t const* sm, int64_t const n,
+               int64_t const jmin, bt_index_t* path) {
   int64_t npat = p->pattern[p->np - 1] + 1;
 
   int64_t i = n - 1;
@@ -22,7 +22,7 @@ void backtrack(step_pattern const* p, num_t const* cm, int64_t const* sm,
   */
 
   // Make an array that counts how many non-null deltas each pattern has
-  int64_t * pat_cnt = (int64_t*)malloc(sizeof(int64_t) * npat);
+  int64_t* pat_cnt = (int64_t*)malloc(sizeof(int64_t) * npat);
   for (int64_t _i = 0; _i < npat; _i++) {
     pat_cnt[_i] = 0;
   }
@@ -36,7 +36,7 @@ void backtrack(step_pattern const* p, num_t const* cm, int64_t const* sm,
 
   // Now make an array of pointers. Each will hold the indices of the
   // non null deltas
-  int64_t ** pat_map = (int64_t**)malloc(sizeof(int64_t**) * npat);
+  int64_t** pat_map = (int64_t**)malloc(sizeof(int64_t**) * npat);
   for (int64_t _i = 0; _i < npat; _i++) {
     pat_map[_i] = (int64_t*)malloc(sizeof(int64_t) * pat_cnt[_i]);
   }
@@ -54,14 +54,15 @@ void backtrack(step_pattern const* p, num_t const* cm, int64_t const* sm,
   for (int64_t _i = 0; _i < p->np; _i++) {
     if (p->di[_i] != 0 || p->dj[_i] != 0) {
       int64_t pp = p->pattern[_i];
-      //fprintf(stderr, "Inc pp: %ld\n", pp);
+      // fprintf(stderr, "Inc pp: %ld\n", pp);
       pat_cnt[pp]++;
     }
   }
 
   // for (int64_t _i = 0; _i < npat; _i++) {
   //   for (int64_t _j = 0; _j < pat_cnt[_i]; _j++) {
-  //     fprintf(stderr, "P: %ld, I: %ld, N: %ld\n", _i, pat_map[_i][_j], pat_cnt[_i]);
+  //     fprintf(stderr, "P: %ld, I: %ld, N: %ld\n", _i, pat_map[_i][_j],
+  //     pat_cnt[_i]);
   //   }
   // }
 
@@ -78,14 +79,14 @@ void backtrack(step_pattern const* p, num_t const* cm, int64_t const* sm,
 
   while (true) {
     if (i == 0 && j == 0) {
-      //fprintf(stderr, "Hit break @ [%ld, %ld]\n", i, j);
+      // fprintf(stderr, "Hit break @ [%ld, %ld]\n", i, j);
       break;
     }
 
     int64_t s = sm[IXM(i, j, n)];
 
     if (s == LONG_MIN) {
-      //fprintf(stderr, "Hit break @ [%ld, %ld] for s=%ld\n", i, j, s);
+      // fprintf(stderr, "Hit break @ [%ld, %ld] for s=%ld\n", i, j, s);
       break;
     }
 
@@ -114,4 +115,12 @@ void backtrack(step_pattern const* p, num_t const* cm, int64_t const* sm,
   }
   free(pat_cnt);
   free(pat_map);
+}
+
+void free_bt_index(bt_index_t * f) {
+  free(f->index1);
+  free(f->index1s);
+  free(f->index2);
+  free(f->index2s);
+  free(f->steps);
 }

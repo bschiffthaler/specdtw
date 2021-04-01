@@ -21,17 +21,6 @@ int main(int argc, char const *argv[]) {
     return 1;
   }
 
-  FILE *spec_a_handle = fopen(argv[1], "r");
-  FILE *spec_b_handle = fopen(argv[2], "r");
-
-  if (! spec_a_handle) {
-    fprintf(stderr, "Error opening input: %s\n", argv[1]);
-    return 1;
-  }
-  if (! spec_b_handle) {
-    fprintf(stderr, "Error opening input: %s\n", argv[2]);
-    return 1;
-  }
 
   FILE *index_out = fopen(argv[3], "w");
   FILE *indexs_out = fopen(argv[4], "w");
@@ -52,8 +41,11 @@ int main(int argc, char const *argv[]) {
 
   fprintf(stderr, "%s\n", "Reading input spectra...");
   clock_t begin_read = clock();
-  fvec spec_a = make_fvec(spec_a_handle);
-  fvec spec_b = make_fvec(spec_b_handle);
+  fvec spec_a = make_fvec(argv[1]);
+  fvec spec_b = make_fvec(argv[2]);
+  if (spec_a.size == 0 || spec_b.size == 0) {
+    return 1;
+  }
   clock_t end_read = clock();
   fprintf(stderr, "Time to read: " num_fmt "\n",
           (num_t)(end_read - begin_read) / CLOCKS_PER_SEC);
@@ -110,26 +102,7 @@ int main(int argc, char const *argv[]) {
     last_row[i] = cm[IXM(n, i, n + 1)];
   }
 
-  // norm the last row
-  switch (p.norm) {
-    case norm_t::NA:
-      break;
-    case norm_t::NM:
-      for (int64_t i = 0; i < m; i++) {
-        last_row[i] /= ((num_t)n + (num_t)(i + 1));
-      }
-      break;
-    case norm_t::N:
-      for (int64_t i = 0; i < m; i++) {
-        last_row[i] /= ((num_t)n);
-      }
-      break;
-    case norm_t::M:
-      for (int64_t i = 0; i < m; i++) {
-        last_row[i] /= ((num_t)(i + 1));
-      }
-      break;
-  }
+  norm_row(&p, n, m, last_row);
 
   // open.end=TRUE
   int64_t jmin = argmin(last_row, m);
@@ -151,7 +124,7 @@ int main(int argc, char const *argv[]) {
 
   fprintf(stderr, "%s\n", "Backtracking...");
   clock_t begin_bt = clock();
-  backtrack(&p, cm, sm, n + 1, m, jmin, &path);
+  backtrack(&p, sm, n + 1, jmin, &path);
   clock_t end_bt = clock();
   fprintf(stderr, "Time to backtrack: " num_fmt "\n",
           (num_t)(end_bt - begin_bt) / CLOCKS_PER_SEC);
@@ -170,9 +143,6 @@ int main(int argc, char const *argv[]) {
   fprintf(stderr, "Time to write: " num_fmt "\n",
           (num_t)(end_write - begin_write) / CLOCKS_PER_SEC);
 
-  // Close files
-  fclose(spec_a_handle);
-  fclose(spec_b_handle);
   // Free spectra matrices
   free_fvec(&spec_a);
   free_fvec(&spec_b);
@@ -182,11 +152,7 @@ int main(int argc, char const *argv[]) {
   free(sm);
   free(last_row);
   // Free the remapped paths
-  free(path.index1);
-  free(path.index1s);
-  free(path.index2);
-  free(path.index2s);
-  free(path.steps);
+  free_bt_index(&path);
   // Free the step pattern data
   free_step_pattern(&p);
 

@@ -1,7 +1,7 @@
 LIBS=-lm
 CC=gcc
 NVCC=/usr/local/cuda/bin/nvcc
-CFLAGS=-Wall -Wextra -fopenmp -pthread -fPIC
+CFLAGS=-Wall -Wextra -fopenmp -pthread
 
 debug: FLAGS += -g -O0 --compiler-options '$(CFLAGS)' 
 release: FLAGS += -g -O3 --compiler-options '$(CFLAGS)'

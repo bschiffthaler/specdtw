@@ -404,7 +404,7 @@ void pseudomatch(num_t const *sp1, num_t const *sp2, group_t const *g1,
     n_diff = abs_diff(&pi_b.data[ii].pos, &pi_a.data[jj].pos);
 
     if (n_peak != c_peak) {
-      update_diff_mat(rowindex, colindex, &c_peak, &c_diff, &b_peak, &b_diff,
+      update_diff_mat(colindex, rowindex, &c_peak, &c_diff, &b_peak, &b_diff,
                       &n_peak, &normdist, &nrow, dist_matrix, &maxii);
     }
 
@@ -438,7 +438,7 @@ void pseudomatch(num_t const *sp1, num_t const *sp2, group_t const *g1,
     }
     ii++;
   }
-  update_diff_mat(rowindex, colindex, &c_peak, &c_diff, &b_peak, &b_diff,
+  update_diff_mat(colindex, rowindex, &c_peak, &c_diff, &b_peak, &b_diff,
                   &n_peak, &normdist, &nrow, dist_matrix, &maxii);
 
   // END Now we calculate a best match for each peak index

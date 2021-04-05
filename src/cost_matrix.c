@@ -1,20 +1,10 @@
 #include <math.h>
+#include <stdlib.h>
 
 #include "common.h"
-#include "cost_matrix.cuh"
+#include "cost_matrix.h"
 #include "step_pattern.h"
 
-__global__ void cuda_kernel_cm(num_t const *lm, num_t *cm, int64_t *sm,
-                               int64_t const n, int64_t const m,
-                               int64_t const np, int64_t const *pattern,
-                               int64_t const *di, int64_t const *dj,
-                               num_t const *cost) {
-  int64_t row = blockIdx.x * blockDim.x + threadIdx.x;
-  int64_t col = blockIdx.y * blockDim.y + threadIdx.y;
-
-  if (row < n && col < m) {
-  }
-}
 
 void cost_matrix(num_t const *lm, step_pattern const *p, num_t *cm, int64_t *sm,
                  int64_t n, int64_t m) {
@@ -41,7 +31,7 @@ void cost_matrix(num_t const *lm, step_pattern const *p, num_t *cm, int64_t *sm,
         int64_t jj = j - p->dj[s];
         if (ii >= 0 && jj >= 0) { /* address ok? C convention */
           num_t cc = p->cost[s];
-          if (near(cc, -1.0)) {
+          if (near(cc, -1.0, SFLT_EPSILON)) {
             clist[_p] = cm[IX(ii, jj)];
           } else { /* we rely on NAN to propagate */
             clist[_p] += cc * lm[IX(ii, jj)];

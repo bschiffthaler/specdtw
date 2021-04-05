@@ -7,7 +7,7 @@
 
 #include "backtrack.h"
 #include "common.h"
-#include "cost_matrix.cuh"
+#include "cost_matrix.h"
 #include "distance.cuh"
 #include "step_pattern.h"
 

@@ -1,10 +1,10 @@
 #include "common.h"
 
+#include <math.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <math.h>
 
-bool near(num_t A, num_t B) {
+bool near(num_t A, num_t B, num_t tol) {
   // Calculate the difference.
   num_t diff = fabs(A - B);
   A = fabs(A);
@@ -12,7 +12,7 @@ bool near(num_t A, num_t B) {
   // Find the largest
   num_t largest = (B > A) ? B : A;
 
-  return (diff <= largest * SFLT_EPSILON);
+  return (diff <= largest * tol);
 }
 
 int64_t argmin(num_t const *clist, int64_t len) {
@@ -43,22 +43,58 @@ fvec make_fvec(char const *filepath) {
   buf.capacity = BUFSIZE;
 
   uint64_t i = 0;
+  char line[SPECTRUM_MAX_LINE_LENGTH];
   while (!feof(stream)) {
-    fscanf(stream, num_fmt, &buf.data[i]);
-    i++;
-    buf.size = i;
-    // Check if capacity reached
-    if (i == buf.capacity) {
-      buf.data = (num_t *)realloc(buf.data, sizeof(num_t) * 2 * buf.capacity);
-      buf.capacity = 2 * buf.capacity;
+    if (fgets(line, SPECTRUM_MAX_LINE_LENGTH, stream) != NULL) {
+      double tmp = NAN;
+      sscanf(line, num_fmt, &tmp);
+      if (isnan(tmp)) {
+        fprintf(stderr, "[WARNING]: Parse failure in '%s'. Skip line: %s",
+                filepath, line);
+        continue;
+      }
+      buf.data[i] = tmp;
+      i++;
+      buf.size = i;
+      // Check if capacity reached
+      if (i == buf.capacity) {
+        buf.data = (num_t *)realloc(buf.data, sizeof(num_t) * 2 * buf.capacity);
+        buf.capacity = 2 * buf.capacity;
+      }
     }
   }
-  --buf.size;
   fclose(stream);
   return buf;
 }
 
 void free_fvec(fvec *v) { free(v->data); }
+void free_uvec(uvec *v) { free(v->data); }
+void free_ivec(ivec *v) { free(v->data); }
+
+void push_back_f(fvec *v, num_t *d) {
+  if (v->size == v->capacity) {
+    v->data = (num_t *)realloc(v->data, sizeof(num_t) * v->capacity * 2);
+    v->capacity *= 2;
+  }
+  v->data[v->size] = *d;
+  v->size++;
+}
+void push_back_u(uvec *v, uint64_t *d) {
+  if (v->size == v->capacity) {
+    v->data = (uint64_t *)realloc(v->data, sizeof(uint64_t) * v->capacity * 2);
+    v->capacity *= 2;
+  }
+  v->data[v->size] = *d;
+  v->size++;
+}
+void push_back_i(ivec *v, int64_t *d) {
+  if (v->size == v->capacity) {
+    v->data = (int64_t *)realloc(v->data, sizeof(int64_t) * v->capacity * 2);
+    v->capacity *= 2;
+  }
+  v->data[v->size] = *d;
+  v->size++;
+}
 
 void print_matrix(num_t *data, int64_t n, int64_t m) {
   for (int64_t row = 0; row < n; row++) {
@@ -141,4 +177,46 @@ mat_t make_matrix_rowwise(char const *filepath, uint64_t ncol) {
 
   fclose(stream);
   return buf;
+}
+
+uint64_t lower_bound(num_t const *arr, num_t const *v, uint64_t const l,
+                     num_t const *tol) {
+  uint64_t hi = l - 1;
+  uint64_t lo = 0;
+  uint64_t mi = hi / 2;
+
+  while (!near(arr[mi], *v, *tol)) {
+    if (arr[mi] > *v) {
+      hi = mi;
+    } else {
+      lo = mi;
+    }
+    if (hi == lo) {
+      mi = hi;
+      break;
+    }
+
+    mi = lo + ((hi - lo) / 2);
+
+    if (mi == lo || mi == hi) {
+      break;
+    }
+  }
+  if (!near(arr[mi], *v, *tol)) {  // Not found
+    return l;
+  }
+  if (mi == 0) {  // Found and already at the lowest value
+    return 0;
+  }
+  while (mi != 0 && near(arr[mi - 1], *v, *tol)) {  // Check if we can go lower
+    mi--;
+  }
+  return mi;
+}
+
+uint64_t abs_diff(uint64_t const * x, uint64_t const * y) {
+  if ((*x) > (*y)) {
+    return (*x) - (*y);
+  }
+  return (*y) - (*x);
 }

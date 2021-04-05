@@ -1,8 +1,17 @@
+extern "C" {
 
 #include <stdio.h>
+#include <math.h>
+
+
 
 #include "distance.cuh"
 #include "common.h"
+
+#include <omp.h>
+
+
+#ifndef CPU_ONLY
 
 /*
   Calculate:
@@ -29,6 +38,12 @@ __global__ void cuda_kernel_euclidean(uint64_t N, num_t *sp_a, num_t *sp_b,
 
 void euclidean(num_t const *sp_a, num_t const *sp_b, num_t *out, int64_t n, int64_t m) {
   
+  // Multiple GPUs?
+  int devcount;
+  cudaGetDeviceCount(&devcount);
+  int thread = omp_get_thread_num();
+  cudaSetDevice(thread % devcount);
+
   num_t *d_sp_a;
   num_t *d_sp_b;
   num_t *d_out;
@@ -58,4 +73,23 @@ void euclidean(num_t const *sp_a, num_t const *sp_b, num_t *out, int64_t n, int6
   cudaFree(d_sp_a);
   cudaFree(d_sp_b);
   cudaFree(d_out);
+}
+
+#else
+
+// CPU only version
+void euclidean(num_t const *sp_a, num_t const *sp_b, num_t *out, int64_t n, int64_t m) {
+
+  for (int64_t row = 0; row < n; row++) {
+    for (int64_t col = 0; col < m; col++) {
+      //shift down a row (account for null leader)
+      int64_t ix = (col * (n + 1) + row + 1);
+      out[ix] = fabs(sp_a[row] - sp_b[col]);  
+    }
+  }  
+
+}
+
+#endif
+
 }

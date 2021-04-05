@@ -9,7 +9,7 @@ step_pattern rjIIc(void) {
   step_pattern _pat;
 
   _pat.np = 8;
-  _pat.norm = norm_t::N;
+  _pat.norm = N;
 
   // Straight up index patterns 0-based since we don't need R compatibility
   _pat.pattern = (int64_t *)malloc(sizeof(int64_t) * _pat.np);
@@ -66,19 +66,19 @@ void norm_row(step_pattern const *p, int64_t const n, int64_t const m,
               num_t *row) {
   // norm the last row
   switch (p->norm) {
-    case norm_t::NA:
+    case NA:
       break;
-    case norm_t::NM:
+    case NM:
       for (int64_t i = 0; i < m; i++) {
         row[i] /= ((num_t)n + (num_t)(i + 1));
       }
       break;
-    case norm_t::N:
+    case N:
       for (int64_t i = 0; i < m; i++) {
         row[i] /= ((num_t)n);
       }
       break;
-    case norm_t::M:
+    case M:
       for (int64_t i = 0; i < m; i++) {
         row[i] /= ((num_t)(i + 1));
       }

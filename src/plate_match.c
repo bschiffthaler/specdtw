@@ -328,7 +328,8 @@ void pseudomatch(num_t const *sp1, num_t const *sp2, group_t const *g1,
     }
   }
 
-  if (pi_a.size > 0) {
+  if (pi_a.size > 0 &&
+      pi_b.size > 0) {  // Both samples need at least one peak called
     // Need sorted input for next step
     qsort(pi_a.data, pi_a.size, sizeof(psi_peak), &comp_peak);
     qsort(pi_b.data, pi_b.size, sizeof(psi_peak), &comp_peak);
@@ -390,61 +391,58 @@ void pseudomatch(num_t const *sp1, num_t const *sp2, group_t const *g1,
     update_diff_mat(rowindex, colindex, &c_peak, &c_diff, &b_peak, &b_diff,
                     &n_peak, &normdist, &nrow, dist_matrix, &maxii, 1);
 
-    if (pi_b.size > 0) {
-      // Now the reciprocal
-      c_peak = pi_b.data[0].idx;
-      c_diff = abs_diff(&pi_b.data[0].pos, &pi_a.data[0].pos);
+    // Now the reciprocal
+    c_peak = pi_b.data[0].idx;
+    c_diff = abs_diff(&pi_b.data[0].pos, &pi_a.data[0].pos);
 
-      b_peak = 0;
-      b_diff = ULONG_MAX;
+    b_peak = 0;
+    b_diff = ULONG_MAX;
 
-      ii = 0;
-      jj = 0;
+    ii = 0;
+    jj = 0;
 
-      while (ii < pi_b.size) {
-        n_peak = pi_b.data[ii].idx;
-        n_diff = abs_diff(&pi_b.data[ii].pos, &pi_a.data[jj].pos);
+    while (ii < pi_b.size) {
+      n_peak = pi_b.data[ii].idx;
+      n_diff = abs_diff(&pi_b.data[ii].pos, &pi_a.data[jj].pos);
 
-        if (n_peak != c_peak) {
-          update_diff_mat(rowindex, colindex, &c_peak, &c_diff, &b_peak,
-                          &b_diff, &n_peak, &normdist, &nrow, dist_matrix,
-                          &maxii, 2);
-        }
-
-        // Forward algorithm: search future timepoints for better matching
-        // peaks. Stop if going further into future doesn't yield same or better
-        // distance
-        while (jj < pi_a.size && n_diff <= c_diff) {
-          if (n_diff < b_diff) {
-            b_peak = pi_a.data[jj].idx;
-            b_diff = n_diff;
-            c_diff = n_diff;
-          }
-          jj++;
-          n_diff = abs_diff(&pi_b.data[ii].pos, &pi_a.data[jj].pos);
-        }
-        // Search backward
-        while (n_diff <= c_diff) {
-          if (n_diff < b_diff) {
-            b_peak = pi_a.data[jj].idx;
-            b_diff = n_diff;
-            c_diff = n_diff;
-          }
-          jj--;
-          n_diff = abs_diff(&pi_b.data[ii].pos, &pi_a.data[jj].pos);
-          if (jj == 0) {            // Stop if we hit 0
-            if (n_diff < b_diff) {  // Stil check if jj=0 is better than jj=1
-              b_peak = pi_a.data[jj].idx;
-              b_diff = n_diff;
-            }
-            break;
-          }
-        }
-        ii++;
+      if (n_peak != c_peak) {
+        update_diff_mat(rowindex, colindex, &c_peak, &c_diff, &b_peak, &b_diff,
+                        &n_peak, &normdist, &nrow, dist_matrix, &maxii, 2);
       }
-      update_diff_mat(rowindex, colindex, &c_peak, &c_diff, &b_peak, &b_diff,
-                      &n_peak, &normdist, &nrow, dist_matrix, &maxii, 2);
+
+      // Forward algorithm: search future timepoints for better matching
+      // peaks. Stop if going further into future doesn't yield same or better
+      // distance
+      while (jj < pi_a.size && n_diff <= c_diff) {
+        if (n_diff < b_diff) {
+          b_peak = pi_a.data[jj].idx;
+          b_diff = n_diff;
+          c_diff = n_diff;
+        }
+        jj++;
+        n_diff = abs_diff(&pi_b.data[ii].pos, &pi_a.data[jj].pos);
+      }
+      // Search backward
+      while (n_diff <= c_diff) {
+        if (n_diff < b_diff) {
+          b_peak = pi_a.data[jj].idx;
+          b_diff = n_diff;
+          c_diff = n_diff;
+        }
+        jj--;
+        n_diff = abs_diff(&pi_b.data[ii].pos, &pi_a.data[jj].pos);
+        if (jj == 0) {            // Stop if we hit 0
+          if (n_diff < b_diff) {  // Stil check if jj=0 is better than jj=1
+            b_peak = pi_a.data[jj].idx;
+            b_diff = n_diff;
+          }
+          break;
+        }
+      }
+      ii++;
     }
+    update_diff_mat(rowindex, colindex, &c_peak, &c_diff, &b_peak, &b_diff,
+                    &n_peak, &normdist, &nrow, dist_matrix, &maxii, 2);
   }
 
   // END Now we calculate a best match for each peak index

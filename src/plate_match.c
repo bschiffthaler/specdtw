@@ -220,7 +220,6 @@ void update_diff_mat(int64_t const *rowindex, int64_t const *colindex,
                      uint64_t *b_diff, int64_t *n_peak, num_t const *normdist,
                      int64_t const *nrow, num_t *dist_matrix,
                      num_t const *maxii, int orientation) {
-
   int64_t row = orientation == 1 ? rowindex[*c_peak] : rowindex[*b_peak];
   int64_t col = orientation == 1 ? colindex[*b_peak] : colindex[*c_peak];
 // Update the peak matrix with the difference in peak positions weighted by
@@ -271,8 +270,8 @@ void pseudomatch(num_t const *sp1, num_t const *sp2, group_t const *g1,
 
   num_t maxii = (num_t)(path.ii - 2);
 
-  #pragma omp critical(incr_penalty)
-  { // Write to shared mem. Penalty is multiplied by 2 since we have both a 
+#pragma omp critical(incr_penalty)
+  {  // Write to shared mem. Penalty is multiplied by 2 since we have both a
     // forward and reverse algorithm. Max reward is therefore (2 * L - 0)
     *penalty += 2 * (path.ii - 2);
   }
@@ -329,118 +328,124 @@ void pseudomatch(num_t const *sp1, num_t const *sp2, group_t const *g1,
     }
   }
 
-  // Need sorted input for next step
-  qsort(pi_a.data, pi_a.size, sizeof(psi_peak), &comp_peak);
-  qsort(pi_b.data, pi_b.size, sizeof(psi_peak), &comp_peak);
-  // END Match pseudotime to known peaks
+  if (pi_a.size > 0) {
+    // Need sorted input for next step
+    qsort(pi_a.data, pi_a.size, sizeof(psi_peak), &comp_peak);
+    qsort(pi_b.data, pi_b.size, sizeof(psi_peak), &comp_peak);
+    // END Match pseudotime to known peaks
 
-  // Now we calculate a best match for each peak index
-  //   Get first position and identity for both spectra
-  int64_t c_peak = pi_a.data[0].idx;
-  uint64_t c_diff = abs_diff(&pi_a.data[0].pos, &pi_b.data[0].pos);
+    // Now we calculate a best match for each peak index
+    //   Get first position and identity for both spectra
+    int64_t c_peak = pi_a.data[0].idx;
+    uint64_t c_diff = abs_diff(&pi_a.data[0].pos, &pi_b.data[0].pos);
 
-  int64_t b_peak = 0;
-  uint64_t b_diff = ULONG_MAX;
+    int64_t b_peak = 0;
+    uint64_t b_diff = ULONG_MAX;
 
-  uint64_t ii = 0;
-  uint64_t jj = 0;
+    uint64_t ii = 0;
+    uint64_t jj = 0;
 
-  int64_t n_peak;
-  uint64_t n_diff;
+    int64_t n_peak;
+    uint64_t n_diff;
 
-  while (ii < pi_a.size) {
-    n_peak = pi_a.data[ii].idx;
-    n_diff = abs_diff(&pi_a.data[ii].pos, &pi_b.data[jj].pos);
-
-    if (n_peak != c_peak) {
-      update_diff_mat(rowindex, colindex, &c_peak, &c_diff, &b_peak, &b_diff,
-                      &n_peak, &normdist, &nrow, dist_matrix, &maxii, 1);
-    }
-
-    // Forward algorithm: search future timepoints for better matching peaks.
-    // Stop if going further into future doesn't yield same or better distance
-    while (jj < pi_b.size && n_diff <= c_diff) {
-      if (n_diff < b_diff) {
-        b_peak = pi_b.data[jj].idx;
-        b_diff = n_diff;
-        c_diff = n_diff;
-      }
-      jj++;
+    while (ii < pi_a.size) {
+      n_peak = pi_a.data[ii].idx;
       n_diff = abs_diff(&pi_a.data[ii].pos, &pi_b.data[jj].pos);
-    }
-    // Search backward
-    while (n_diff <= c_diff) {
-      if (n_diff < b_diff) {
-        b_peak = pi_b.data[jj].idx;
-        b_diff = n_diff;
-        c_diff = n_diff;
+
+      if (n_peak != c_peak) {
+        update_diff_mat(rowindex, colindex, &c_peak, &c_diff, &b_peak, &b_diff,
+                        &n_peak, &normdist, &nrow, dist_matrix, &maxii, 1);
       }
-      jj--;
-      n_diff = abs_diff(&pi_a.data[ii].pos, &pi_b.data[jj].pos);
-      if (jj == 0) {            // Stop if we hit 0
-        if (n_diff < b_diff) {  // Stil check if jj=0 is better than jj=1
+
+      // Forward algorithm: search future timepoints for better matching peaks.
+      // Stop if going further into future doesn't yield same or better distance
+      while (jj < pi_b.size && n_diff <= c_diff) {
+        if (n_diff < b_diff) {
           b_peak = pi_b.data[jj].idx;
           b_diff = n_diff;
+          c_diff = n_diff;
         }
-        break;
+        jj++;
+        n_diff = abs_diff(&pi_a.data[ii].pos, &pi_b.data[jj].pos);
       }
+      // Search backward
+      while (n_diff <= c_diff) {
+        if (n_diff < b_diff) {
+          b_peak = pi_b.data[jj].idx;
+          b_diff = n_diff;
+          c_diff = n_diff;
+        }
+        jj--;
+        n_diff = abs_diff(&pi_a.data[ii].pos, &pi_b.data[jj].pos);
+        if (jj == 0) {            // Stop if we hit 0
+          if (n_diff < b_diff) {  // Stil check if jj=0 is better than jj=1
+            b_peak = pi_b.data[jj].idx;
+            b_diff = n_diff;
+          }
+          break;
+        }
+      }
+      ii++;
     }
-    ii++;
-  }
-  update_diff_mat(rowindex, colindex, &c_peak, &c_diff, &b_peak, &b_diff,
-                  &n_peak, &normdist, &nrow, dist_matrix, &maxii, 1);
+    update_diff_mat(rowindex, colindex, &c_peak, &c_diff, &b_peak, &b_diff,
+                    &n_peak, &normdist, &nrow, dist_matrix, &maxii, 1);
 
-  // Now the reciprocal
-  c_peak = pi_b.data[0].idx;
-  c_diff = abs_diff(&pi_b.data[0].pos, &pi_a.data[0].pos);
+    if (pi_b.size > 0) {
+      // Now the reciprocal
+      c_peak = pi_b.data[0].idx;
+      c_diff = abs_diff(&pi_b.data[0].pos, &pi_a.data[0].pos);
 
-  b_peak = 0;
-  b_diff = ULONG_MAX;
+      b_peak = 0;
+      b_diff = ULONG_MAX;
 
-  ii = 0;
-  jj = 0;
+      ii = 0;
+      jj = 0;
 
-  while (ii < pi_b.size) {
-    n_peak = pi_b.data[ii].idx;
-    n_diff = abs_diff(&pi_b.data[ii].pos, &pi_a.data[jj].pos);
+      while (ii < pi_b.size) {
+        n_peak = pi_b.data[ii].idx;
+        n_diff = abs_diff(&pi_b.data[ii].pos, &pi_a.data[jj].pos);
 
-    if (n_peak != c_peak) {
+        if (n_peak != c_peak) {
+          update_diff_mat(rowindex, colindex, &c_peak, &c_diff, &b_peak,
+                          &b_diff, &n_peak, &normdist, &nrow, dist_matrix,
+                          &maxii, 2);
+        }
+
+        // Forward algorithm: search future timepoints for better matching
+        // peaks. Stop if going further into future doesn't yield same or better
+        // distance
+        while (jj < pi_a.size && n_diff <= c_diff) {
+          if (n_diff < b_diff) {
+            b_peak = pi_a.data[jj].idx;
+            b_diff = n_diff;
+            c_diff = n_diff;
+          }
+          jj++;
+          n_diff = abs_diff(&pi_b.data[ii].pos, &pi_a.data[jj].pos);
+        }
+        // Search backward
+        while (n_diff <= c_diff) {
+          if (n_diff < b_diff) {
+            b_peak = pi_a.data[jj].idx;
+            b_diff = n_diff;
+            c_diff = n_diff;
+          }
+          jj--;
+          n_diff = abs_diff(&pi_b.data[ii].pos, &pi_a.data[jj].pos);
+          if (jj == 0) {            // Stop if we hit 0
+            if (n_diff < b_diff) {  // Stil check if jj=0 is better than jj=1
+              b_peak = pi_a.data[jj].idx;
+              b_diff = n_diff;
+            }
+            break;
+          }
+        }
+        ii++;
+      }
       update_diff_mat(rowindex, colindex, &c_peak, &c_diff, &b_peak, &b_diff,
                       &n_peak, &normdist, &nrow, dist_matrix, &maxii, 2);
     }
-
-    // Forward algorithm: search future timepoints for better matching peaks.
-    // Stop if going further into future doesn't yield same or better distance
-    while (jj < pi_a.size && n_diff <= c_diff) {
-      if (n_diff < b_diff) {
-        b_peak = pi_a.data[jj].idx;
-        b_diff = n_diff;
-        c_diff = n_diff;
-      }
-      jj++;
-      n_diff = abs_diff(&pi_b.data[ii].pos, &pi_a.data[jj].pos);
-    }
-    // Search backward
-    while (n_diff <= c_diff) {
-      if (n_diff < b_diff) {
-        b_peak = pi_a.data[jj].idx;
-        b_diff = n_diff;
-        c_diff = n_diff;
-      }
-      jj--;
-      n_diff = abs_diff(&pi_b.data[ii].pos, &pi_a.data[jj].pos);
-      if (jj == 0) {            // Stop if we hit 0
-        if (n_diff < b_diff) {  // Stil check if jj=0 is better than jj=1
-          b_peak = pi_a.data[jj].idx;
-          b_diff = n_diff;
-        }
-        break;
-      }
-    }
-    ii++;
   }
-  update_diff_mat(rowindex, colindex, &c_peak, &c_diff, &b_peak, &b_diff,
-                  &n_peak, &normdist, &nrow, dist_matrix, &maxii, 2);
 
   // END Now we calculate a best match for each peak index
 

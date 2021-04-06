@@ -219,9 +219,10 @@ void update_diff_mat(int64_t const *rowindex, int64_t const *colindex,
                      int64_t *c_peak, uint64_t *c_diff, int64_t *b_peak,
                      uint64_t *b_diff, int64_t *n_peak, num_t const *normdist,
                      int64_t const *nrow, num_t *dist_matrix,
-                     num_t const *maxii) {
-  int64_t row = rowindex[*c_peak];
-  int64_t col = colindex[*b_peak];
+                     num_t const *maxii, int orientation) {
+
+  int64_t row = orientation == 1 ? rowindex[*c_peak] : rowindex[*b_peak];
+  int64_t col = orientation == 1 ? colindex[*b_peak] : colindex[*c_peak];
 // Update the peak matrix with the difference in peak positions weighted by
 // the spectral difference from DTW. A higher spectral difference incurs
 // a higher penslty
@@ -353,7 +354,7 @@ void pseudomatch(num_t const *sp1, num_t const *sp2, group_t const *g1,
 
     if (n_peak != c_peak) {
       update_diff_mat(rowindex, colindex, &c_peak, &c_diff, &b_peak, &b_diff,
-                      &n_peak, &normdist, &nrow, dist_matrix, &maxii);
+                      &n_peak, &normdist, &nrow, dist_matrix, &maxii, 1);
     }
 
     // Forward algorithm: search future timepoints for better matching peaks.
@@ -387,7 +388,7 @@ void pseudomatch(num_t const *sp1, num_t const *sp2, group_t const *g1,
     ii++;
   }
   update_diff_mat(rowindex, colindex, &c_peak, &c_diff, &b_peak, &b_diff,
-                  &n_peak, &normdist, &nrow, dist_matrix, &maxii);
+                  &n_peak, &normdist, &nrow, dist_matrix, &maxii, 1);
 
   // Now the reciprocal
   c_peak = pi_b.data[0].idx;
@@ -404,8 +405,8 @@ void pseudomatch(num_t const *sp1, num_t const *sp2, group_t const *g1,
     n_diff = abs_diff(&pi_b.data[ii].pos, &pi_a.data[jj].pos);
 
     if (n_peak != c_peak) {
-      update_diff_mat(colindex, rowindex, &c_peak, &c_diff, &b_peak, &b_diff,
-                      &n_peak, &normdist, &nrow, dist_matrix, &maxii);
+      update_diff_mat(rowindex, colindex, &c_peak, &c_diff, &b_peak, &b_diff,
+                      &n_peak, &normdist, &nrow, dist_matrix, &maxii, 2);
     }
 
     // Forward algorithm: search future timepoints for better matching peaks.
@@ -438,8 +439,8 @@ void pseudomatch(num_t const *sp1, num_t const *sp2, group_t const *g1,
     }
     ii++;
   }
-  update_diff_mat(colindex, rowindex, &c_peak, &c_diff, &b_peak, &b_diff,
-                  &n_peak, &normdist, &nrow, dist_matrix, &maxii);
+  update_diff_mat(rowindex, colindex, &c_peak, &c_diff, &b_peak, &b_diff,
+                  &n_peak, &normdist, &nrow, dist_matrix, &maxii, 2);
 
   // END Now we calculate a best match for each peak index
 

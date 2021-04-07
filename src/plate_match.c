@@ -11,6 +11,7 @@
 #include "backtrack.h"
 #include "common.h"
 #include "cost_matrix.h"
+#include "gpu_cost_matrix.cuh"
 #include "distance.cuh"
 #include "step_pattern.h"
 
@@ -119,7 +120,11 @@ void dtw(num_t const *sp1, num_t const *sp2, int64_t const n,
   for (int64_t i = 0; i < ((n + 1) * n); i++) {
     sm[i] = LONG_MIN;
   }
+#ifdef CPU_ONLY
   cost_matrix(lm, p, cm, sm, n + 1, n);
+#else
+  gpu_cost_matrix(lm, p, cm, sm, n + 1, n);
+#endif
   num_t *last_row = (num_t *)malloc(sizeof(num_t) * n);
   for (int64_t i = 0; i < n; i++) {
     last_row[i] = cm[IXM(n, i, n + 1)];
@@ -360,7 +365,8 @@ void pseudomatch(num_t const *sp1, num_t const *sp2, group_t const *g1,
 
       // Forward algorithm: search future timepoints for better matching peaks.
       // Stop if going further into future doesn't yield same or better distance
-      while (jj < pi_b.size && n_diff <= c_diff) {
+      jj = 0;
+      while (jj < pi_b.size) {
         if (n_diff < b_diff) {
           b_peak = pi_b.data[jj].idx;
           b_diff = n_diff;
@@ -369,23 +375,23 @@ void pseudomatch(num_t const *sp1, num_t const *sp2, group_t const *g1,
         jj++;
         n_diff = abs_diff(&pi_a.data[ii].pos, &pi_b.data[jj].pos);
       }
-      // Search backward
-      while (n_diff <= c_diff) {
-        if (n_diff < b_diff) {
-          b_peak = pi_b.data[jj].idx;
-          b_diff = n_diff;
-          c_diff = n_diff;
-        }
-        jj--;
-        n_diff = abs_diff(&pi_a.data[ii].pos, &pi_b.data[jj].pos);
-        if (jj == 0) {            // Stop if we hit 0
-          if (n_diff < b_diff) {  // Stil check if jj=0 is better than jj=1
-            b_peak = pi_b.data[jj].idx;
-            b_diff = n_diff;
-          }
-          break;
-        }
-      }
+      // // Search backward
+      // while (n_diff <= c_diff) {
+      //   if (n_diff < b_diff) {
+      //     b_peak = pi_b.data[jj].idx;
+      //     b_diff = n_diff;
+      //     c_diff = n_diff;
+      //   }
+      //   jj--;
+      //   n_diff = abs_diff(&pi_a.data[ii].pos, &pi_b.data[jj].pos);
+      //   if (jj == 0) {            // Stop if we hit 0
+      //     if (n_diff < b_diff) {  // Stil check if jj=0 is better than jj=1
+      //       b_peak = pi_b.data[jj].idx;
+      //       b_diff = n_diff;
+      //     }
+      //     break;
+      //   }
+      // }
       ii++;
     }
     update_diff_mat(rowindex, colindex, &c_peak, &c_diff, &b_peak, &b_diff,
@@ -413,7 +419,8 @@ void pseudomatch(num_t const *sp1, num_t const *sp2, group_t const *g1,
       // Forward algorithm: search future timepoints for better matching
       // peaks. Stop if going further into future doesn't yield same or better
       // distance
-      while (jj < pi_a.size && n_diff <= c_diff) {
+      jj = 0;
+      while (jj < pi_a.size) {
         if (n_diff < b_diff) {
           b_peak = pi_a.data[jj].idx;
           b_diff = n_diff;
@@ -422,23 +429,23 @@ void pseudomatch(num_t const *sp1, num_t const *sp2, group_t const *g1,
         jj++;
         n_diff = abs_diff(&pi_b.data[ii].pos, &pi_a.data[jj].pos);
       }
-      // Search backward
-      while (n_diff <= c_diff) {
-        if (n_diff < b_diff) {
-          b_peak = pi_a.data[jj].idx;
-          b_diff = n_diff;
-          c_diff = n_diff;
-        }
-        jj--;
-        n_diff = abs_diff(&pi_b.data[ii].pos, &pi_a.data[jj].pos);
-        if (jj == 0) {            // Stop if we hit 0
-          if (n_diff < b_diff) {  // Stil check if jj=0 is better than jj=1
-            b_peak = pi_a.data[jj].idx;
-            b_diff = n_diff;
-          }
-          break;
-        }
-      }
+      // // Search backward
+      // while (n_diff <= c_diff) {
+      //   if (n_diff < b_diff) {
+      //     b_peak = pi_a.data[jj].idx;
+      //     b_diff = n_diff;
+      //     c_diff = n_diff;
+      //   }
+      //   jj--;
+      //   n_diff = abs_diff(&pi_b.data[ii].pos, &pi_a.data[jj].pos);
+      //   if (jj == 0) {            // Stop if we hit 0
+      //     if (n_diff < b_diff) {  // Stil check if jj=0 is better than jj=1
+      //       b_peak = pi_a.data[jj].idx;
+      //       b_diff = n_diff;
+      //     }
+      //     break;
+      //   }
+      // }
       ii++;
     }
     update_diff_mat(rowindex, colindex, &c_peak, &c_diff, &b_peak, &b_diff,

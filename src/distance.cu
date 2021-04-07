@@ -66,7 +66,7 @@ void euclidean(num_t const *sp_a, num_t const *sp_b, num_t *out, int64_t n, int6
   cuda_kernel_euclidean<<<grid, block>>>(
       n * m, d_sp_a, d_sp_b, d_out, n, m);
 
-  cudaDeviceSynchronize();
+  cudaStreamSynchronize(0);
 
   cudaMemcpy(out, d_out, sizeof(num_t) * (n + 1) * m, cudaMemcpyDeviceToHost);
 

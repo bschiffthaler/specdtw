@@ -8,6 +8,7 @@
 #include "backtrack.h"
 #include "common.h"
 #include "cost_matrix.h"
+#include "gpu_cost_matrix.cuh"
 #include "distance.cuh"
 #include "step_pattern.h"
 
@@ -92,7 +93,11 @@ int main(int argc, char const *argv[]) {
 
   fprintf(stderr, "%s\n", "Calculating cost matrix cm...");
   clock_t begin_cm = clock();
+#ifdef CPU_ONLY
   cost_matrix(lm, &p, cm, sm, n + 1, m);
+#else
+  gpu_cost_matrix(lm, &p, cm, sm, n + 1, m);
+#endif
   clock_t end_cm = clock();
   fprintf(stderr, "Time to calculate cm: " num_fmt "\n",
           (num_t)(end_cm - begin_cm) / CLOCKS_PER_SEC);

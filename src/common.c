@@ -3,6 +3,10 @@
 #include <math.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <omp.h>
+
+//cudaStream_t streams[omp_get_num_threads()];
+
 
 bool near(num_t A, num_t B, num_t tol) {
   // Calculate the difference.

@@ -235,8 +235,8 @@ void update_diff_mat(int64_t const *rowindex, int64_t const *colindex,
     // Reward has two factors.
     //   normdist: Similarity of spectra according to DTW
     //   b_diff  : Distance between peaks on pseudotime
-    num_t val = *maxii - ((num_t)*b_diff * (1.0 - *normdist));
-    // fprintf(stderr, "U: [%ld, %ld]\n", row, col);
+    num_t val = pow(1.0 - (((num_t)*b_diff * (1.0 - *normdist)) / *maxii), 32.0);
+    //fprintf(stderr, "U: [%ld, %ld, %lf, %lf, %lu, %lf]\n", row, col, *maxii, *normdist, *b_diff, val);
     if (isnan(val)) {
       fprintf(stderr,
               "[WARNING]: NAN introduced in dist matrix here: [%ld, %ld]\n",
@@ -561,7 +561,7 @@ int main(int argc, char const *argv[]) {
       (num_t *)calloc(rowids.size * colids.size, sizeof(num_t));
 
   uint64_t total = (p1.nrow * p2.nrow);
-  num_t d_total = (num_t)total;
+  //num_t d_total = (num_t)total;
   for (uint64_t i = 0; i < (rowids.size * colids.size); i++) {
     dist_matrix[i] = 0;
   }
@@ -594,24 +594,27 @@ int main(int argc, char const *argv[]) {
   }
 
   // Panlize and norm by comparisons
-  for (uint64_t i = 0; i < (rowids.size * colids.size); i++) {
-    num_t nn = (dist_matrix[i] - penalty) / d_total;
-    dist_matrix[i] = nn;
-  }
+  //for (uint64_t i = 0; i < (rowids.size * colids.size); i++) {
+    //num_t nn = (dist_matrix[i] - (num_t)penalty) / d_total;
+    //dist_matrix[i] = nn;
+  //}
 
   for (uint64_t i = 0; i < rowids.size; i++) {
-    fprintf(rows_out, "%ld\n", rowids.data[i]);
+    fprintf(rows_out, "%ld\n", rowids.data[i] + 1);
     for (uint64_t j = 0; j < colids.size; j++) {
       if (i == 0) {
-        fprintf(cols_out, "%ld\n", colids.data[j]);
+        fprintf(cols_out, "%ld\n", colids.data[j] + 1);
       }
       num_t d = dist_matrix[IXM(i, j, rowids.size)];
-      fprintf(dist_out, "%lf", d);
-      if (j == (colids.size - 1)) {
-        fprintf(dist_out, "\n");
-      } else {
-        fprintf(dist_out, " ");
+      //fprintf(dist_out, "%lf", d);
+      if (! near(d, 0.0, SFLT_EPSILON)) {
+        fprintf(dist_out, "%ld %ld " num_fmt "\n", i + 1, j + 1, d);
       }
+      // if (j == (colids.size - 1)) {
+      //   fprintf(dist_out, "\n");
+      // } else {
+      //   fprintf(dist_out, " ");
+      // }
     }
   }
 

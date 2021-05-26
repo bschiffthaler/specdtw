@@ -4,3 +4,7 @@
 bin/*
 !example/spec1.tsv
 !example/spec2.tsv
+out/*
+prep/*
+__pycache__/*
+a.out

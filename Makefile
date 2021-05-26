@@ -1,7 +1,7 @@
 LIBS=-lm
 CC=gcc
 NVCC=/usr/local/cuda/bin/nvcc
-CFLAGS=-Wall -Wextra -fopenmp -pthread
+CFLAGS=-Wall -Wextra -fopenmp -pthread -DCPU_ONLY
 
 debug: FLAGS += --default-stream per-thread -g -O0 --compiler-options '$(CFLAGS)' 
 release: FLAGS += --default-stream per-thread -g -O3 --compiler-options '$(CFLAGS)'

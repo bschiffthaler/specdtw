@@ -8,3 +8,6 @@ out/*
 prep/*
 __pycache__/*
 a.out
+*.pck
+*.dicts
+*.nkbin

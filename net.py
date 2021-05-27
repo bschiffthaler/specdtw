@@ -8,6 +8,7 @@ import progressbar
 from collections import Counter, defaultdict
 from copy import deepcopy
 
+
 def isclose(a, b, rel_tol=1e-9, abs_tol=0.0):
     return abs(a - b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
 
@@ -270,6 +271,7 @@ def group_sim(x: int, y: int, groups: dict, node_dict: dict, gr: nk.Graph):
         return np.mean(weights)
     return 0.0
 
+
 def merge_smallest(groups: dict, node_dict: dict, gr: nk.Graph, skip: set, cutoff=0.5):
     # Need to be consisten with repect to order
     keys = list(groups.keys())
@@ -301,6 +303,7 @@ def merge_smallest(groups: dict, node_dict: dict, gr: nk.Graph, skip: set, cutof
             print(f" ...weights -> {np.asarray(aw)[ags[::-1][0:5]]}")
             skip.add(smallest)
             return False
+
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
@@ -389,7 +392,7 @@ if __name__ == "__main__":
         while True:
             ret = merge_smallest(groups, node_dict, gr, skips, cutoff=0.25)
             print(f"len(groups) -> {len(groups)}")
-            if ! ret:
+            if not ret:
                 failures += 1
             else:
                 failues = 0

@@ -272,6 +272,36 @@ def group_sim(x: int, y: int, groups: dict, node_dict: dict, gr: nk.Graph):
         return np.mean(weights)
     return 0.0
 
+def merge_smallest(groups: dict, node_dict: dict, gr: nk.Graph, skip: set, cutoff=0.5):
+    # Need to be consisten with repect to order
+    keys = list(groups.keys())
+    # Sort clusters by membership size
+    lens = [len(groups[x]) for x in keys]
+    agm = np.argsort(lens, kind="stable")
+    # Make sure current smallest is not un-mergable
+    arr_idx = 0
+    si = agm[arr_idx]
+    while keys[si] in skip:
+        arr_idx += 1
+        si = agm[arr_idx]
+    smallest = keys[si]
+    print(f"Getting cluster similarities for {smallest} of len -> {lens[si]}")
+    aw = [group_sim(smallest, x, groups, node_dict, gr) for x in keys]
+    ags = np.argsort(aw, kind="stable")
+    for i in ags[::-1]:
+        xi = keys[i]
+        if xi == smallest:
+            continue
+        elif aw[i] > cutoff:
+            print(f"Merging {smallest} -> {xi}")
+            for pk in groups[smallest]:
+                groups[xi].append(copy.deepcopy(pk))
+            del groups[smallest]
+            return True
+        else:
+            print(f"No hits")
+            skip.add(smallest)
+            return True
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
@@ -342,11 +372,21 @@ if __name__ == "__main__":
     with open("groups.pck", "rb") as ii:
         groups = pickle.load(ii)
 
-    for _ in range(10):
-        logging.info(f"Refine round {_}")
+    lp = None
+    dropped = []
+    ctr = 0
+    while lp != len(dropped):
+        logging.info(f"Refine round {ctr}")
+        lp = len(dropped)
         dropped = prune_groups(groups, node_dict, gr)
         logging.info(f"Need to reassign {len(dropped)} peaks")
         assign_new(dropped, groups, node_dict, gr)
+        ctr += 1
+
+    skips = set()
+    while merge_smallest(groups, node_dict, gr, skips):
+        print(f"len(groups) -> {len(groups)}")
+        pass
 
     with open("initial_grouping.txt", "w") as igrp:
         for i in range(len(groups)):

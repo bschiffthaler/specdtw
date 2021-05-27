@@ -1,14 +1,12 @@
-import os
 import logging
-from networkit.graph import Graph
-from collections import Counter, defaultdict
-import numpy as np
 import networkit as nk
-from copy import deepcopy
+import numpy as np
+import os
 import pickle
-from numba import jit
 import progressbar
 
+from collections import Counter, defaultdict
+from copy import deepcopy
 
 def isclose(a, b, rel_tol=1e-9, abs_tol=0.0):
     return abs(a - b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
@@ -299,14 +297,15 @@ def merge_smallest(groups: dict, node_dict: dict, gr: nk.Graph, skip: set, cutof
             del groups[smallest]
             return True
         else:
-            print(f"No hits")
+            print(f"Miss. Top 5 -> {np.asarray(keys)[ags[::-1][0:5]]}")
+            print(f" ...weights -> {np.asarray(aw)[ags[::-1][0:5]]}")
             skip.add(smallest)
-            return True
+            return False
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
 
-    gr = Graph(n=0, weighted=True, directed=False)
+    gr = nk.Graph(n=0, weighted=True, directed=False)
     node_dict = {}
     plates = {}
 
@@ -372,21 +371,34 @@ if __name__ == "__main__":
     with open("groups.pck", "rb") as ii:
         groups = pickle.load(ii)
 
-    lp = None
-    dropped = []
-    ctr = 0
-    while lp != len(dropped):
-        logging.info(f"Refine round {ctr}")
-        lp = len(dropped)
-        dropped = prune_groups(groups, node_dict, gr)
-        logging.info(f"Need to reassign {len(dropped)} peaks")
-        assign_new(dropped, groups, node_dict, gr)
-        ctr += 1
+    # 5 runs of refining
+    for _ in range(5):
+        lp = None
+        dropped = []
+        ctr = 0
+        while lp != len(dropped):
+            logging.info(f"Refine round {ctr}")
+            lp = len(dropped)
+            dropped = prune_groups(groups, node_dict, gr)
+            logging.info(f"Need to reassign {len(dropped)} peaks")
+            assign_new(dropped, groups, node_dict, gr)
+            ctr += 1
 
-    skips = set()
-    while merge_smallest(groups, node_dict, gr, skips):
-        print(f"len(groups) -> {len(groups)}")
-        pass
+        skips = set()
+        failures = 0
+        while True:
+            ret = merge_smallest(groups, node_dict, gr, skips, cutoff=0.25)
+            print(f"len(groups) -> {len(groups)}")
+            if ! ret:
+                failures += 1
+            else:
+                failues = 0
+            # Break on 10 merge failures is a row
+            if failures > 10 or len(groups) < 100:
+                break
+
+    with open("groups2.pck", "wb") as oo:
+        pickle.dump(groups, oo)
 
     with open("initial_grouping.txt", "w") as igrp:
         for i in range(len(groups)):

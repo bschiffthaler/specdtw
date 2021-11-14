@@ -1,10 +1,11 @@
 LIBS=-lm
 CC=gcc
-NVCC=/usr/local/cuda/bin/nvcc
-CFLAGS=-Wall -Wextra -fopenmp -pthread -DCPU_ONLY
+NVCC=nvcc
+CFLAGS=-Wall -Wextra -fopenmp -pthread
+CFLAGS+=$(CFLAGS_EXTRA)
 
 debug: FLAGS += --default-stream per-thread -g -O0 --compiler-options '$(CFLAGS)' 
-release: FLAGS += --default-stream per-thread -g -O3 --compiler-options '$(CFLAGS)'
+release: FLAGS += --default-stream per-thread -g -O3 --compiler-options '$(CFLAGS)' 
 
 default: debug
 
@@ -35,15 +36,12 @@ src/specdtw.o: src/specdtw.c
 src/plate_match.o: src/plate_match.c
 	$(NVCC) $(FLAGS) -c -o src/plate_match.o src/plate_match.c
 
-src/prefix_sum.o: src/prefix_sum.cu
-	$(NVCC) $(FLAGS) -c -o src/prefix_sum.o src/prefix_sum.cu
-
 specdtw: src/backtrack.o src/common.o src/distance.o src/specdtw.o src/step_pattern.o src/cost_matrix.o src/gpu_cost_matrix.o
 	mkdir -p bin
 	$(NVCC) $(FLAGS) -o bin/specdtw src/backtrack.o src/common.o \
 	  src/cost_matrix.o src/gpu_cost_matrix.o src/distance.o src/specdtw.o src/step_pattern.o $(LIBS)
 
-plate_match: src/backtrack.o src/common.o src/distance.o src/step_pattern.o src/cost_matrix.o src/gpu_cost_matrix.o src/plate_match.o src/prefix_sum.o
+plate_match: src/backtrack.o src/common.o src/distance.o src/step_pattern.o src/cost_matrix.o src/gpu_cost_matrix.o src/plate_match.o
 	mkdir -p bin
 	$(NVCC) $(FLAGS) -o bin/plate_match src/plate_match.o src/backtrack.o src/common.o \
 	  src/cost_matrix.o src/gpu_cost_matrix.o src/distance.o src/step_pattern.o $(LIBS)
